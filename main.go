@@ -1,7 +1,7 @@
 package main
 
 import (
-	now "../../utils/go/bridge"
+	now "github.com/zeit/now-builders/utils/go/bridge"
 	"net/http"
 )
 

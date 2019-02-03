@@ -1,6 +1,6 @@
 {
-  "name": "now-go-mod",
-  "version": "0.2.13-canary.0",
+  "name": "now-go-mod-builder",
+  "version": "0.2.13-canary.1",
   "license": "MIT",
   "scripts": {
     "test": "best -I test/*.js",
@@ -10,7 +10,8 @@
     "bin",
     "download-go-bin.js",
     "index.js",
-    "main.go"
+    "main.go",
+    "main__mod__.go"
   ],
   "dependencies": {
     "execa": "^1.0.0",
