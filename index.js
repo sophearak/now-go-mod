@@ -1,5 +1,5 @@
 const path = require('path');
-const { mkdirp, readFile, writeFile, move } = require('fs-extra');
+const { mkdirp, readFile, writeFile, move, pathExists } = require('fs-extra');
 
 const execa = require('execa');
 const { createLambda } = require('@now/build-utils/lambda.js'); // eslint-disable-line import/no-extraneous-dependencies
@@ -86,18 +86,21 @@ exports.build = async ({ files, entrypoint }) => {
   // otherwise `go build` will refuse to build
   const entrypointDirname = path.dirname(downloadedFiles[entrypoint].fsPath);
 
-  // for backkward compability
+  // for backward compability
   // if entry not using main as package name
   // using go mod, otherwise using the previous flow
   let packageName = parseStdout.split(',')[1];
+  const isGoModExist = await pathExists(`${entrypointDirname}/go.mod`);
   if (packageName !== 'main') {
     // initalize go mod with provide by user package
     try {
-      await execa(goBin, ['mod', 'init', `${packageName}`], {
-        env: goModEnv,
-        cwd: entrypointDirname,
-        stdio: 'inherit',
-      });
+      if (!isGoModExist) {
+        await execa(goBin, ['mod', 'init', `${packageName}`], {
+          env: goModEnv,
+          cwd: entrypointDirname,
+          stdio: 'inherit',
+        });
+      }
     } catch (err) {
       console.log('failed to initialize `go mod`');
       throw err;
@@ -108,16 +111,25 @@ exports.build = async ({ files, entrypoint }) => {
       path.join(__dirname, mainModGoFileName),
       'utf8',
     );
-    const mainModGoContents = modMainGoContents.replace(
-      '__NOW_HANDLER_FUNC_NAME',
-      `${packageName}.${handlerFunctionName}`,
-    ).replace(
-      '__NOW_HANDLER_PACKAGE_NAME',
-      `${packageName}/${packageName}`
-    );
+
+    let goPackageName = `${packageName}/${packageName}`;
+    let goFuncName = `${packageName}.${handlerFunctionName}`;
+    if (isGoModExist) {
+      let goModContents = await readFile(
+        `${entrypointDirname}/go.mod`,
+        'utf8',
+      );
+      goPackageName = `${goModContents.split('\n')[0].split(' ')[1]}/${packageName}`
+    }
+
+    const mainModGoContents = modMainGoContents
+      .replace('__NOW_HANDLER_PACKAGE_NAME', goPackageName)
+      .replace('__NOW_HANDLER_FUNC_NAME', goFuncName);
 
     // write main__mod__.go
     await writeFile(path.join(entrypointDirname, mainModGoFileName), mainModGoContents);
+
+    console.log(mainModGoContents);
 
     try {
       await move(
