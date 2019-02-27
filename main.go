@@ -1,8 +1,9 @@
 package main
 
 import (
-	now "github.com/zeit/now-builders/utils/go/bridge"
 	"net/http"
+
+	now "github.com/zeit/now-builders/utils/go/bridge"
 )
 
 func main() {

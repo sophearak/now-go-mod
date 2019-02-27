@@ -8,6 +8,7 @@ const download = require('@now/build-utils/fs/download.js'); // eslint-disable-l
 const downloadGit = require('lambda-git');
 const glob = require('@now/build-utils/fs/glob.js'); // eslint-disable-line import/no-extraneous-dependencies
 const downloadGoBin = require('./download-go-bin');
+const downloadGCC = require('./download-gcc-bin');
 
 // creates a `$GOPATH` directory tree, as per
 // `go help gopath`'s instructions.
@@ -55,6 +56,24 @@ exports.build = async ({ files, entrypoint }) => {
     GOPATH: goPath,
     GO111MODULE: 'on',
   };
+
+  console.log(`make GCC available`);
+  try {
+    const {
+      PATH: gccPATH,
+      LD_LIBRARY_PATH: ldLib,
+      CPATH: cPath,
+      LIBRARY_PATH: libPath
+    } = await downloadGCC();
+    const { PATH, HOME } = process.env;
+    goModEnv.PATH = `${gccPATH}:${PATH}`;
+    goModEnv.LD_LIBRARY_PATH = ldLib;
+    goModEnv.CPATH = cPath;
+    goModEnv.LIBRARY_PATH = libPath;
+  } catch (err) {
+    console.log(`failed to make GCC available`);
+    throw err;
+  }
 
   console.log(`parsing AST for "${entrypoint}"`);
   let parseStdout = '';
@@ -169,6 +188,16 @@ exports.build = async ({ files, entrypoint }) => {
       console.log('failed to `go build`');
       throw err;
     }
+    // console.log('outDir: ', outDir);
+    // try {
+    //   await move(
+    //     `${entrypointDirname}/handler`,
+    //     `${outDir}/handler`
+    //   )
+    // } catch (err) {
+    //   console.log('failed to move handler to outDir');
+    //   throw err;
+    // }
   } else {
     const origianlMainGoContents = await readFile(
       path.join(__dirname, 'main.go'),
