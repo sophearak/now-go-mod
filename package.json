@@ -1,6 +1,6 @@
 {
   "name": "now-go-mod-builder",
-  "version": "0.2.15-canary.40",
+  "version": "0.2.18-canary.1",
   "license": "MIT",
   "scripts": {
     "postinstall": "node ./util/install"

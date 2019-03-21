@@ -68,7 +68,12 @@ async function build({ files, entrypoint }) {
     );
     if (!isGoModExist) {
       try {
-        go('mod', 'init', packageName);
+        const defaultGoModContent = `module ${packageName}`
+
+        await writeFile(
+          join(entrypointDirname, 'go.mod'),
+          defaultGoModContent,
+        );
       } catch (err) {
         console.log(`failed to \`go mod init ${packageName}\``);
         throw err;
@@ -106,6 +111,12 @@ async function build({ files, entrypoint }) {
 
     // move user go file to folder
     try {
+      console.log('downloadedFiles[entrypoint].fsPath');
+      console.log(downloadedFiles[entrypoint].fsPath);
+
+      console.log('join(entrypointDirname, packageName, entrypoint)');
+      console.log(`${join(entrypointDirname, packageName, entrypoint)}`);
+
       await move(
         downloadedFiles[entrypoint].fsPath,
         `${join(entrypointDirname, packageName, entrypoint)}`,
@@ -115,14 +126,12 @@ async function build({ files, entrypoint }) {
       throw err;
     }
 
-    console.log('installing dependencies');
+    console.log('tidy go.mod file');
     try {
       // ensure go.mod up-to-date
       await go('mod', 'tidy');
-
-      go.get();
     } catch (err) {
-      console.log('failed to `go get`');
+      console.log('failed to `go mod tidy`');
       throw err;
     }
 
