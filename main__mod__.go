@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"__NOW_HANDLER_PACKAGE_NAME"
 
-	now "github.com/zeit/now-builders/utils/go/bridge"
+	now "github.com/sophearak/now-go-mod/bridge"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-const { join, dirname } = require('path');
+const { join, sep, dirname } = require('path');
 const {
   readFile, writeFile, pathExists, move,
 } = require('fs-extra');
@@ -55,7 +55,7 @@ async function build({ files, entrypoint }) {
 
   // check if package name other than main
   const packageName = parseFunctionName.split(',')[1];
-  const isGoModExist = await pathExists(`${entrypointDirname}/go.mod`);
+  const isGoModExist = await pathExists(join(entrypointDirname, 'go.mod'));
   if (packageName !== 'main') {
     const go = await createGo(
       goPath,
@@ -68,14 +68,11 @@ async function build({ files, entrypoint }) {
     );
     if (!isGoModExist) {
       try {
-        const defaultGoModContent = `module ${packageName}`
+        const defaultGoModContent = `module ${packageName}`;
 
-        await writeFile(
-          join(entrypointDirname, 'go.mod'),
-          defaultGoModContent,
-        );
+        await writeFile(join(entrypointDirname, 'go.mod'), defaultGoModContent);
       } catch (err) {
-        console.log(`failed to \`go mod init ${packageName}\``);
+        console.log(`failed to create default go.mod for ${packageName}`);
         throw err;
       }
     }
@@ -91,7 +88,7 @@ async function build({ files, entrypoint }) {
 
     if (isGoModExist) {
       const goModContents = await readFile(
-        `${entrypointDirname}/go.mod`,
+        join(entrypointDirname, 'go.mod'),
         'utf8',
       );
       goPackageName = `${
@@ -111,16 +108,20 @@ async function build({ files, entrypoint }) {
 
     // move user go file to folder
     try {
-      console.log('downloadedFiles[entrypoint].fsPath');
-      console.log(downloadedFiles[entrypoint].fsPath);
+      // default path
+      let finalDestination = join(entrypointDirname, packageName, entrypoint);
+      const entrypointArr = entrypoint.split(sep);
 
-      console.log('join(entrypointDirname, packageName, entrypoint)');
-      console.log(`${join(entrypointDirname, packageName, entrypoint)}`);
+      // if `entrypoint` include folder, only use filename
+      if (entrypointArr.length > 1) {
+        finalDestination = join(
+          entrypointDirname,
+          packageName,
+          entrypointArr.pop(),
+        );
+      }
 
-      await move(
-        downloadedFiles[entrypoint].fsPath,
-        `${join(entrypointDirname, packageName, entrypoint)}`,
-      );
+      await move(downloadedFiles[entrypoint].fsPath, finalDestination);
     } catch (err) {
       console.log('failed to move entry to package folder');
       throw err;
